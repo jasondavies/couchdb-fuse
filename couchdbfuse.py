@@ -31,6 +31,104 @@ class CouchStat(fuse.Stat):
         self.st_ctime = 0
 
 
+class CouchFSDocument(fuse.Fuse):
+    def __init__(self, mountpoint, uri=None, *args, **kwargs):
+        fuse.Fuse.__init__(self, *args, **kwargs)
+        db_uri, doc_id = uri.rsplit('/', 1)
+        self.doc_id = unquote(doc_id)
+        self.db = Database(db_uri)
+
+    def readdir(self, path, offset):
+        for r in '.', '..':
+            yield fuse.Direntry(r)
+        for att in self.db[self.doc_id].get('_attachments', {}).keys():
+            yield fuse.Direntry(att.encode('utf-8'))
+
+    def getattr(self, path):
+        try:
+            st = CouchStat()
+            if path == '/':
+                st.st_mode = stat.S_IFDIR | 0755
+                st.st_nlink = 2
+            else:
+                att = self.db[self.doc_id].get('_attachments', {})
+                data = att[path[1:]]
+                st.st_mode = stat.S_IFREG | 0644
+                st.st_nlink = 1
+                st.st_size = data['length']
+            return st
+        except (KeyError, ResourceNotFound):
+            return -errno.ENOENT
+
+    def open(self, path, flags):
+        try:
+            data = self.db.get_attachment(self.db[self.doc_id], path.split('/')[-1])
+            #att = self.db[self.doc_id].get('_attachments', {})
+            #data = att[path.split('/')[-1]]
+            return 0
+        except (KeyError, ResourceNotFound):
+            return -errno.ENOENT
+        #accmode = os.O_RDONLY | os.O_WRONLY | os.O_RDWR
+        #if (flags & accmode) != os.O_RDONLY:
+        #    return -errno.EACCES
+
+    def read(self, path, size, offset):
+        try:
+            data = self.db.get_attachment(self.db[self.doc_id], path.split('/')[-1])
+            slen = len(data)
+            if offset < slen:
+                if offset + size > slen:
+                    size = slen - offset
+                buf = data[offset:offset+size]
+            else:
+                buf = ''
+            return buf
+        except (KeyError, ResourceNotFound):
+            pass
+        return -errno.ENOENT
+
+    def write(self, path, buf, offset):
+        try:
+            data = self.db.get_attachment(self.db[self.doc_id], path.split('/')[-1])
+            data = data[0:offset] + buf + data[offset+len(buf):]
+            self.db.put_attachment(self.db[self.doc_id], data, filename=path.split('/')[-1])
+            return len(buf)
+        except (KeyError, ResourceNotFound):
+            pass
+        return -errno.ENOENT
+
+    def mknod(self, path, mode, dev):
+        name = path.split('/')[-1]
+        self.db.put_attachment(self.db[self.doc_id], u'', filename=name)
+        return 0
+
+    def unlink(self, path):
+        name = path.split('/')[-1]
+        self.db.delete_attachment(self.db[self.doc_id], name)
+        return 0
+
+    def truncate(self, path, size):
+        name = path.split('/')[-1]
+        self.db.put_attachment(self.db[self.doc_id], u'', filename=name)
+        return 0
+
+    def utime(self, path, times):
+        return 0
+
+    def mkdir(self, path, mode):
+        return 0
+
+    def rmdir(self, path):
+        return 0
+
+    def rename(self, pathfrom, pathto):
+        return 0
+
+    def fsync(self, path, isfsyncfile):
+        return 0
+
+
+
 class CouchFS(fuse.Fuse):
     """FUSE interface to a CouchDB database."""
 
@@ -173,14 +271,19 @@ class CouchFS(fuse.Fuse):
 
 if __name__ == '__main__':
     args = sys.argv[1:]
-    if len(args) not in (1, 2):
-        print "Usage: python couchdbfuse.py [http://hostname:port/] mount-point"
+    if len(args) not in (2,):
+        print "CouchDB FUSE Connector: Allows you to browse the _attachments of"
+        print " any CouchDB document on your own filesystem!"
+        print
+        print "Remember to URL-encode your <doc_id> appropriately."
+        print
+        print "Usage: python couchdbfuse.py <http://hostname:port/db/doc_id> <mount-point>"
         sys.exit(-1)
 
     if len(args) == 1:
         fs = CouchFS(args[0])
     elif len(args) == 2:
-        fs = CouchFS(args[1], args[0])
+        fs = CouchFSDocument(args[1], args[0])
 
     fs.parse(errex=1)
     fs.main()
