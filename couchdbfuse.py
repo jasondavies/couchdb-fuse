@@ -25,7 +25,7 @@ class CouchStat(fuse.Stat):
         self.st_nlink = 0
         self.st_uid = 0
         self.st_gid = 0
-        self.st_size = 0
+        self.st_size = 4096
         self.st_atime = 0
         self.st_mtime = 0
         self.st_ctime = 0
@@ -127,6 +127,34 @@ class CouchFSDocument(fuse.Fuse):
     def fsync(self, path, isfsyncfile):
         return 0
 
+    def statfs(self):
+        """
+        Should return a tuple with the following 6 elements:
+            - blocksize - size of file blocks, in bytes
+            - totalblocks - total number of blocks in the filesystem
+            - freeblocks - number of free blocks
+            - availblocks - number of blocks available to non-superuser
+            - totalfiles - total number of file inodes
+            - freefiles - nunber of free file inodes
+    
+        Feel free to set any of the above values to 0, which tells
+        the kernel that the info is not available.
+        """
+        st = fuse.StatVfs()
+        block_size = 1024
+        blocks = 1024 * 1024
+        blocks_free = blocks
+        blocks_avail = blocks_free
+        files = 0
+        files_free = 0
+        st.f_bsize = block_size
+        st.f_frsize = block_size
+        st.f_blocks = blocks
+        st.f_bfree = blocks_free
+        st.f_bavail = blocks_avail
+        st.f_files = files
+        st.f_ffree = files_free
+        return st
 
 
 class CouchFS(fuse.Fuse):
