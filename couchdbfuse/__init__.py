@@ -1,5 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+#
+# Copyright (C) 2008 Jason Davies
+# All rights reserved.
+#
+# This software is licensed as described in the file COPYING, which
+# you should have received as part of this distribution.
+
 
 from couchdb import Database, Document, ResourceNotFound, Row, Server, \
     ViewResults
@@ -296,8 +303,7 @@ class CouchFS(fuse.Fuse):
         if isinstance(server, Server):
             server.create(path.split('/')[-1])
 
-
-if __name__ == '__main__':
+def main():
     args = sys.argv[1:]
     if len(args) not in (2,):
         print "CouchDB FUSE Connector: Allows you to browse the _attachments of"
