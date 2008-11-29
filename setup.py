@@ -41,5 +41,5 @@ attachments to be mounted on a virtual filesystem and edited directly.""",
         ],
     },
 
-    install_requires = ['CouchDB>=0.5', 'fuse-python>=0.2'],
+    install_requires = ['CouchDB>=0.5'],
 )
