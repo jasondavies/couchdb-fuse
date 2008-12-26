@@ -44,17 +44,18 @@ class CouchFSDocument(fuse.Fuse):
         db_uri, doc_id = uri.rsplit('/', 1)
         self.doc_id = unquote(doc_id)
         self.db = Database(db_uri)
+        self.dir_cache = set()
 
     def readdir(self, path, offset):
         for r in '.', '..':
             yield fuse.Direntry(r)
-        for att in self.db[self.doc_id].get('_attachments', {}).keys():
+        for att in self.db[self.doc_id].get('_attachments', {}).keys() + list(self.dir_cache):
             yield fuse.Direntry(att.encode('utf-8'))
 
     def getattr(self, path):
         try:
             st = CouchStat()
-            if path == '/':
+            if path == '/' or path in self.dir_cache:
                 st.st_mode = stat.S_IFDIR | 0755
                 st.st_nlink = 2
             else:
@@ -123,6 +124,7 @@ class CouchFSDocument(fuse.Fuse):
         return 0
 
     def mkdir(self, path, mode):
+        self.dir_cache.add(path)
         return 0
 
     def rmdir(self, path):
