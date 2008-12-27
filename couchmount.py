@@ -327,7 +327,7 @@ def main():
         print
         print "Remember to URL-encode your <doc_id> appropriately."
         print
-        print "Usage: python couchdbfuse.py <http://hostname:port/db/doc_id> <mount-point>"
+        print "Usage: python couchmount.py <http://hostname:port/db/doc_id> <mount-point>"
         sys.exit(-1)
 
     if len(args) == 1:

@@ -25,6 +25,8 @@ attachments to be mounted on a virtual filesystem and edited directly.""",
     url = 'http://code.google.com/p/couchdb-fuse/',
     zip_safe = True,
 
+    py_modules = ['couchmount'],
+
     classifiers = [
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
@@ -33,11 +35,10 @@ attachments to be mounted on a virtual filesystem and edited directly.""",
         'Programming Language :: Python',
         'Topic :: Database :: Front-Ends',
     ],
-    packages = ['couchdbfuse'],
 
     entry_points = {
         'console_scripts': [
-            'couchmount = couchdbfuse:main',
+            'couchmount = couchmount:main',
         ],
     },
 
