@@ -169,6 +169,10 @@ class CouchFSDocument(fuse.Fuse):
         return 0
 
     def rename(self, pathfrom, pathto):
+        pathfrom, pathto = _normalize_path(pathfrom), _normalize_path(pathto)
+        data = self.db.get_attachment(self.db[self.doc_id], pathfrom)
+        self.db.put_attachment(self.db[self.doc_id], data, filename=pathto)
+        self.db.delete_attachment(self.db[self.doc_id], pathfrom)
         return 0
 
     def fsync(self, path, isfsyncfile):
