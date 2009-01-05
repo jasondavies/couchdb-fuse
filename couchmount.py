@@ -32,8 +32,8 @@ class CouchStat(fuse.Stat):
         self.st_ino = 0
         self.st_dev = 0
         self.st_nlink = 0
-        self.st_uid = 0
-        self.st_gid = 0
+        self.st_uid = os.getuid()
+        self.st_gid = os.getgid()
         self.st_size = 4096
         self.st_atime = 0
         self.st_mtime = 0
@@ -135,7 +135,6 @@ class CouchFSDocument(fuse.Fuse):
     def mknod(self, path, mode, dev):
         path = _normalize_path(path)
         self.db.put_attachment(self.db[self.doc_id], u'', filename=path)
-        return 0
 
     def unlink(self, path):
         path = _normalize_path(path)
@@ -148,7 +147,6 @@ class CouchFSDocument(fuse.Fuse):
         if filename != COUCHFS_DIRECTORY_PLACEHOLDER and len(self.get_dirs().get(dirname, [])) == 0:
             print "putting to:", u'%s/%s' % (dirname, COUCHFS_DIRECTORY_PLACEHOLDER)
             self.db.put_attachment(self.db[self.doc_id], u'', filename=u'%s/%s' % (dirname, COUCHFS_DIRECTORY_PLACEHOLDER))
-        return 0
 
     def truncate(self, path, size):
         path = _normalize_path(path)
