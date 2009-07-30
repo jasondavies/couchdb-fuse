@@ -365,3 +365,6 @@ def main():
 
     fs.parse(errex=1)
     fs.main()
+
+if __name__ == '__main__':
+    main()
