@@ -1,4 +1,3 @@
-============
 CouchDB-FUSE
 ============
 
@@ -12,7 +11,7 @@ Installation
 
 This *should* be as easy as:
 
-  easy_install CouchDB-FUSE
+    easy_install CouchDB-FUSE
 
 Usage
 -----
@@ -20,4 +19,4 @@ Usage
 Currently you can mount a CouchDB document's attachments on a given mount-point
 as follows:
 
-  couchmount http://hostname:port/dbname/doc_id mount-point
+    couchmount http://hostname:port/dbname/doc_id mount-point
