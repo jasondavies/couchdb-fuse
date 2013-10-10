@@ -42,5 +42,5 @@ attachments to be mounted on a virtual filesystem and edited directly.""",
         ],
     },
 
-    install_requires = ['CouchDB>=0.5'],
+    install_requires = ['CouchDB>=0.9'],
 )

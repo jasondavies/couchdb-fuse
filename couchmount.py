@@ -8,8 +8,8 @@
 # you should have received as part of this distribution.
 
 
-from couchdb import Database, Document, ResourceNotFound, Row, Server, \
-    ViewResults
+from couchdb.client import Database, Document, Server, Row, ViewResults
+from couchdb.http import ResourceNotFound
 import errno
 import fuse
 import os
