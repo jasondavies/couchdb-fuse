@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "CouchDB-FUSE"
+version = "0.2"
+description = "FUSE interface to CouchDB document attachments."
+readme = {file = "README.md", content-type = "text/markdown"}
+authors = [{name = "Jason Davies", email = "jason@jasondavies.com"}]
+license = "BSD-3-Clause"
+keywords = ["couchdb", "fuse", "filesystem"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX",
+    "Programming Language :: Python :: 2",
+    "Programming Language :: Python :: 2.7",
+    "Topic :: Database :: Front-Ends",
+    "Topic :: System :: Filesystems",
+]
+requires-python = ">=2.7,<3"
+dependencies = ["CouchDB>=0.9"]
+
+[project.urls]
+Homepage = "https://github.com/jasondavies/couchdb-fuse"
+Repository = "https://github.com/jasondavies/couchdb-fuse"
+Issues = "https://github.com/jasondavies/couchdb-fuse/issues"
+
+[project.scripts]
+couchmount = "couchmount:main"
+
+[tool.setuptools]
+py-modules = ["couchmount"]

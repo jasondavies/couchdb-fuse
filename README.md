@@ -1,24 +1,28 @@
 CouchDB-FUSE
 ============
 
-A FUSE interface to CouchDB.  See the [blog post][1] for more details.
-
-[1]: http://www.jasondavies.com/blog/2008/11/25/edit-couchdb-attachments-directly-with-couchdb-fuse/
+A FUSE interface to CouchDB.
 
 Requirements
 ------------
 
- * [Python FUSE bindings](http://fuse.sourceforge.net/)
- * [CouchDB-Python](http://code.google.com/p/couchdb-python/) 0.5 or greater
+ * A system FUSE implementation such as libfuse or macFUSE
+ * Legacy Python `fuse` bindings such as [`fuse-python`](https://pypi.org/project/fuse-python/)
+ * [CouchDB-Python](https://couchdb-python.readthedocs.io/en/latest/) 0.9 or greater
 
 Installation
 ------------
 
-Make sure the requirements above are installed, then run `python setup.py
-install`.  You can also install the latest stable version from [PyPI][2] by
-running `easy_install CouchDB-FUSE`.
+This project currently targets Python 2.7. Make sure the requirements above are
+installed, then install it from a Python 2 environment:
 
-[2]: http://pypi.python.org/pypi/CouchDB-FUSE
+    python2 -m pip install .
+
+You can also install the published package from [PyPI][2]:
+
+    python2 -m pip install CouchDB-FUSE
+
+[2]: https://pypi.org/project/CouchDB-FUSE/
 
 Usage
 -----
@@ -41,6 +45,6 @@ Use cases
    Python prompt becomes tedious very quickly: drag'n'drop or `cp *` is the way
    forward!
 
-[3]: http://jchris.mfdz.com/code/2008/11/my_couch_or_yours__shareable_ap
+[3]: https://web.archive.org/web/20090107050156/http://jchris.mfdz.com/code/2008/11/my_couch_or_yours__shareable_ap
 
 Happy Couching!
