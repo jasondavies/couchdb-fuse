@@ -8,19 +8,14 @@
 # you should have received as part of this distribution.
 
 
-from couchdb.client import Database, Document, Server, Row, ViewResults
+from couchdb.client import Database
 from couchdb.http import ResourceNotFound
 import errno
 import fuse
 import os
 import stat
 import sys
-from time import time
-try:
-    import simplejson as json
-except ImportError:
-    import json # Python 2.6
-from urllib.parse import quote, unquote
+from urllib.parse import unquote
 
 fuse.fuse_python_api = (0, 2)
 
@@ -215,145 +210,6 @@ class CouchFSDocument(fuse.Fuse):
         return st
 
 
-class CouchFS(fuse.Fuse):
-    """FUSE interface to a CouchDB database."""
-
-    def __init__(self, mountpoint, uri=None, *args, **kw):
-        fuse.Fuse.__init__(self, *args, **kw)
-        self.fuse_args.mountpoint = mountpoint
-        if uri is not None:
-            self.server = Server(uri)
-        else:
-            self.server = Server()
-
-    def getcouchattrs(self, path):
-        attr = self.server
-        attrs = [attr]
-        parts = [x for x in path[1:].split('/') if x != '']
-        i = 0
-        for part in parts:
-            if isinstance(attr, Database):
-                if part == '_view':
-                    attr = attr.view('_all_docs')['_design/':'_design/ZZZ']
-                    attr.is_view = True
-                elif part == '_all_docs':
-                    attr = attr.view('_all_docs')
-            elif isinstance(attr, ViewResults):
-                if getattr(attr, 'is_view', False):
-                    attr = list(attr['_design/'+part])[0]
-                    attr.is_view = True
-                else:
-                    if attr.view.name != '_all_docs':
-                        part = json.loads(unquote(part))
-                    results = list(attr.view()[part])
-                    if len(results) == 1:
-                        attr = results[0]
-                    else:
-                        attr = attr.view()[part+'/':part+'/ZZZ']
-                        if i + 1 < len(parts):
-                            parts[i+1] = '%s/%s' % (part, parts[i+1])
-            elif isinstance(attr, Row):
-                if getattr(attr, 'is_view', False):
-                    db = self.server[parts[0]]
-                    attr = db.view('_view/' + '/'.join(parts[i-1:i+1]), group=True)
-                elif part == 'value':
-                    attr = attr.value
-            else:
-                attr = attr[part]
-            attrs.append(attr)
-            i += 1
-        return attrs
-
-    def getattr(self, path):
-        try:
-            st = CouchStat()
-            attr = self.getcouchattrs(path)[-1]
-            if (isinstance(attr, Server) or isinstance(attr, Database) or
-                    isinstance(attr, Document) or isinstance(attr, ViewResults)
-                    or isinstance(attr, Row)):
-                st.st_mode = stat.S_IFDIR | 0o755
-                st.st_nlink = 2
-            else:
-                data = json.dumps(attr).encode('utf-8')
-                st.st_mode = stat.S_IFREG | 0o444
-                st.st_nlink = 1
-                st.st_size = len(data)
-            return st
-        except (KeyError, ResourceNotFound):
-            return -errno.ENOENT
-
-    def readdir(self, path, offset):
-        attr = self.getcouchattrs(path)[-1]
-        for r in '.', '..':
-            yield fuse.Direntry(r)
-        if isinstance(attr, Server):
-            for db_name in self.server:
-                yield fuse.Direntry(db_name)
-            return
-        if isinstance(attr, Database):
-            yield fuse.Direntry('_all_docs')
-            yield fuse.Direntry('_view')
-            return
-        if isinstance(attr, ViewResults):
-            is_view = getattr(attr, 'is_view', False)
-            for row in list(attr):
-                dirname = row.key
-                if attr.view.name != '_all_docs':
-                    dirname = quote(json.dumps(row.key))
-                else:
-                    dirname = dirname.split('/')[attr.options.get('startkey', '').count('/')]
-                if is_view:
-                    dirname = dirname.split('/')[-1]
-                yield fuse.Direntry(dirname)
-            return
-        if isinstance(attr, Row):
-            is_view = getattr(attr, 'is_view', False)
-            if is_view:
-                db = self.getcouchattrs(path)[1]
-                for r in db[attr.id]['views']:
-                    yield fuse.Direntry(r)
-            else:
-                yield fuse.Direntry('value')
-            return
-        for r in attr.keys():
-            yield fuse.Direntry(r)
-
-    def open(self, path, flags):
-        try:
-            attr = self.getcouchattrs(path)[-1]
-        except (KeyError, ResourceNotFound):
-            return -errno.ENOENT
-        accmode = os.O_RDONLY | os.O_WRONLY | os.O_RDWR
-        if (flags & accmode) != os.O_RDONLY:
-            return -errno.EACCES
-
-    def read(self, path, size, offset):
-        try:
-            attr = self.getcouchattrs(path)[-1]
-            data = json.dumps(attr).encode('utf-8')
-            slen = len(data)
-            if offset < slen:
-                if offset + size > slen:
-                    size = slen - offset
-                buf = data[offset:offset+size]
-            else:
-                buf = b''
-            return buf
-        except (KeyError, ResourceNotFound):
-            pass
-        return -errno.ENOENT
-
-    def write(self, path, buf, offset):
-        pass
-
-    def unlink(self, path):
-        attr = self.getcouchattrs(path)[-1]
-
-    def mkdir(self, path, mode):
-        server = self.getcouchattrs(path)[0]
-        if isinstance(server, Server):
-            server.create(path.split('/')[-1])
-
 def main():
     args = sys.argv[1:]
     if len(args) not in (2, 3):
@@ -365,9 +221,7 @@ def main():
         print("Usage: python couchmount.py [-d] <http://hostname:port/db/doc_id> <mount-point>")
         sys.exit(-1)
 
-    if len(args) == 1:
-        fs = CouchFS(args[0])
-    elif len(args) == 2:
+    if len(args) == 2:
         fs = CouchFSDocument(args[1], args[0])
     elif len(args) == 3:
         fs = CouchFSDocument(args[2], args[1])
