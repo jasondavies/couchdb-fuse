@@ -49,6 +49,15 @@ class CouchFSDocument(fuse.Fuse):
         self.doc_id = unquote(doc_id)
         self.db = Database(db_uri)
 
+    def get_attachment(self, path):
+        missing = object()
+        data = self.db.get_attachment(self.db[self.doc_id], path, default=missing)
+        if data is missing:
+            raise ResourceNotFound()
+        if data is None:  # empty attachment
+            return ''
+        return data.read()
+
     def get_dirs(self):
         dirs = {}
         attachments = self.db[self.doc_id].get('_attachments', {}).keys()
@@ -108,7 +117,7 @@ class CouchFSDocument(fuse.Fuse):
     def read(self, path, size, offset):
         path = _normalize_path(path)
         try:
-            data = self.db.get_attachment(self.db[self.doc_id], path)
+            data = self.get_attachment(path)
             slen = len(data)
             if offset < slen:
                 if offset + size > slen:
@@ -124,7 +133,7 @@ class CouchFSDocument(fuse.Fuse):
     def write(self, path, buf, offset):
         path = _normalize_path(path)
         try:
-            data = self.db.get_attachment(self.db[self.doc_id], path)
+            data = self.get_attachment(path)
             data = data[0:offset] + buf + data[offset+len(buf):]
             self.db.put_attachment(self.db[self.doc_id], data, filename=path)
             return len(buf)
@@ -168,7 +177,7 @@ class CouchFSDocument(fuse.Fuse):
 
     def rename(self, pathfrom, pathto):
         pathfrom, pathto = _normalize_path(pathfrom), _normalize_path(pathto)
-        data = self.db.get_attachment(self.db[self.doc_id], pathfrom)
+        data = self.get_attachment(pathfrom)
         self.db.put_attachment(self.db[self.doc_id], data, filename=pathto)
         self.db.delete_attachment(self.db[self.doc_id], pathfrom)
         return 0
