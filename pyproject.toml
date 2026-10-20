@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "CouchDB-FUSE"
-version = "0.2"
+version = "0.2.1"
 description = "FUSE interface to CouchDB document attachments."
 readme = {file = "README.md", content-type = "text/markdown"}
 authors = [{name = "Jason Davies", email = "jason@jasondavies.com"}]
