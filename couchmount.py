@@ -20,7 +20,7 @@ try:
     import simplejson as json
 except ImportError:
     import json # Python 2.6
-from urllib import quote, unquote
+from urllib.parse import quote, unquote
 
 fuse.fuse_python_api = (0, 2)
 
@@ -55,7 +55,7 @@ class CouchFSDocument(fuse.Fuse):
         if data is missing:
             raise ResourceNotFound()
         if data is None:  # empty attachment
-            return ''
+            return b''
         return data.read()
 
     def get_dirs(self):
@@ -75,19 +75,19 @@ class CouchFSDocument(fuse.Fuse):
         for r in '.', '..':
             yield fuse.Direntry(r)
         for name in self.get_dirs().get(path, []):
-            yield fuse.Direntry(name.encode('utf-8'))
+            yield fuse.Direntry(name)
 
     def getattr(self, path):
         path = _normalize_path(path)
         try:
             st = CouchStat()
             if path == '' or path in self.get_dirs().keys():
-                st.st_mode = stat.S_IFDIR | 0775
+                st.st_mode = stat.S_IFDIR | 0o775
                 st.st_nlink = 2
             else:
                 att = self.db[self.doc_id].get('_attachments', {})
                 data = att[path]
-                st.st_mode = stat.S_IFREG | 0664
+                st.st_mode = stat.S_IFREG | 0o664
                 st.st_nlink = 1
                 st.st_size = data['length']
             return st
@@ -124,7 +124,7 @@ class CouchFSDocument(fuse.Fuse):
                     size = slen - offset
                 buf = data[offset:offset+size]
             else:
-                buf = ''
+                buf = b''
             return buf
         except (KeyError, ResourceNotFound):
             pass
@@ -143,7 +143,7 @@ class CouchFSDocument(fuse.Fuse):
 
     def mknod(self, path, mode, dev):
         path = _normalize_path(path)
-        self.db.put_attachment(self.db[self.doc_id], u'', filename=path)
+        self.db.put_attachment(self.db[self.doc_id], b'', filename=path)
 
     def unlink(self, path):
         path = _normalize_path(path)
@@ -154,12 +154,12 @@ class CouchFSDocument(fuse.Fuse):
             dirname, filename = parts
         self.db.delete_attachment(self.db[self.doc_id], path)
         if filename != COUCHFS_DIRECTORY_PLACEHOLDER and len(self.get_dirs().get(dirname, [])) == 0:
-            print "putting to:", u'%s/%s' % (dirname, COUCHFS_DIRECTORY_PLACEHOLDER)
-            self.db.put_attachment(self.db[self.doc_id], u'', filename=u'%s/%s' % (dirname, COUCHFS_DIRECTORY_PLACEHOLDER))
+            print("putting to:", u'%s/%s' % (dirname, COUCHFS_DIRECTORY_PLACEHOLDER))
+            self.db.put_attachment(self.db[self.doc_id], b'', filename=u'%s/%s' % (dirname, COUCHFS_DIRECTORY_PLACEHOLDER))
 
     def truncate(self, path, size):
         path = _normalize_path(path)
-        self.db.put_attachment(self.db[self.doc_id], u'', filename=path)
+        self.db.put_attachment(self.db[self.doc_id], b'', filename=path)
         return 0
 
     def utime(self, path, times):
@@ -167,7 +167,7 @@ class CouchFSDocument(fuse.Fuse):
 
     def mkdir(self, path, mode):
         path = _normalize_path(path)
-        self.db.put_attachment(self.db[self.doc_id], u'', filename=u'%s/%s' % (path, COUCHFS_DIRECTORY_PLACEHOLDER))
+        self.db.put_attachment(self.db[self.doc_id], b'', filename=u'%s/%s' % (path, COUCHFS_DIRECTORY_PLACEHOLDER))
         return 0
 
     def rmdir(self, path):
@@ -271,11 +271,11 @@ class CouchFS(fuse.Fuse):
             if (isinstance(attr, Server) or isinstance(attr, Database) or
                     isinstance(attr, Document) or isinstance(attr, ViewResults)
                     or isinstance(attr, Row)):
-                st.st_mode = stat.S_IFDIR | 0755
+                st.st_mode = stat.S_IFDIR | 0o755
                 st.st_nlink = 2
             else:
-                data = json.dumps(attr)
-                st.st_mode = stat.S_IFREG | 0444
+                data = json.dumps(attr).encode('utf-8')
+                st.st_mode = stat.S_IFREG | 0o444
                 st.st_nlink = 1
                 st.st_size = len(data)
             return st
@@ -288,7 +288,7 @@ class CouchFS(fuse.Fuse):
             yield fuse.Direntry(r)
         if isinstance(attr, Server):
             for db_name in self.server:
-                yield fuse.Direntry(db_name.encode('utf-8'))
+                yield fuse.Direntry(db_name)
             return
         if isinstance(attr, Database):
             yield fuse.Direntry('_all_docs')
@@ -304,19 +304,19 @@ class CouchFS(fuse.Fuse):
                     dirname = dirname.split('/')[attr.options.get('startkey', '').count('/')]
                 if is_view:
                     dirname = dirname.split('/')[-1]
-                yield fuse.Direntry(dirname.encode('utf-8'))
+                yield fuse.Direntry(dirname)
             return
         if isinstance(attr, Row):
             is_view = getattr(attr, 'is_view', False)
             if is_view:
                 db = self.getcouchattrs(path)[1]
                 for r in db[attr.id]['views']:
-                    yield fuse.Direntry(r.encode('utf-8'))
+                    yield fuse.Direntry(r)
             else:
                 yield fuse.Direntry('value')
             return
         for r in attr.keys():
-            yield fuse.Direntry(r.encode('utf-8'))
+            yield fuse.Direntry(r)
 
     def open(self, path, flags):
         try:
@@ -330,14 +330,14 @@ class CouchFS(fuse.Fuse):
     def read(self, path, size, offset):
         try:
             attr = self.getcouchattrs(path)[-1]
-            data = json.dumps(attr)
+            data = json.dumps(attr).encode('utf-8')
             slen = len(data)
             if offset < slen:
                 if offset + size > slen:
                     size = slen - offset
                 buf = data[offset:offset+size]
             else:
-                buf = ''
+                buf = b''
             return buf
         except (KeyError, ResourceNotFound):
             pass
@@ -357,12 +357,12 @@ class CouchFS(fuse.Fuse):
 def main():
     args = sys.argv[1:]
     if len(args) not in (2, 3):
-        print "CouchDB FUSE Connector: Allows you to browse the _attachments of"
-        print " any CouchDB document on your own filesystem!"
-        print
-        print "Remember to URL-encode your <doc_id> appropriately."
-        print
-        print "Usage: python couchmount.py [-d] <http://hostname:port/db/doc_id> <mount-point>"
+        print("CouchDB FUSE Connector: Allows you to browse the _attachments of")
+        print(" any CouchDB document on your own filesystem!")
+        print()
+        print("Remember to URL-encode your <doc_id> appropriately.")
+        print()
+        print("Usage: python couchmount.py [-d] <http://hostname:port/db/doc_id> <mount-point>")
         sys.exit(-1)
 
     if len(args) == 1:

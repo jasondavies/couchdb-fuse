@@ -7,20 +7,22 @@ Requirements
 ------------
 
  * A system FUSE implementation such as libfuse or macFUSE
- * Legacy Python `fuse` bindings such as [`fuse-python`](https://pypi.org/project/fuse-python/)
- * [CouchDB-Python](https://couchdb-python.readthedocs.io/en/latest/) 0.9 or greater
+ * Python 3.10 or greater
 
 Installation
 ------------
 
-This project currently targets Python 2.7. Make sure the requirements above are
-installed, then install it from a Python 2 environment:
+Install it from a checkout with:
 
-    python2 -m pip install .
+    python3 -m pip install .
+
+This also installs the Python dependencies,
+[`fuse-python`](https://pypi.org/project/fuse-python/) and
+[CouchDB-Python](https://couchdb-python.readthedocs.io/en/latest/).
 
 You can also install the published package from [PyPI][2]:
 
-    python2 -m pip install CouchDB-FUSE
+    python3 -m pip install CouchDB-FUSE
 
 [2]: https://pypi.org/project/CouchDB-FUSE/
 
